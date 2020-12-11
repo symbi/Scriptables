@@ -20,8 +20,8 @@ class Widget extends Base {
    */
   constructor (arg) {
     super(arg)
-    this.name = '蚂蚁庄园'
-    this.desc = '今天的题会做么？'
+    this.name = '平甩'
+    this.desc = '今天平甩了么？'
   }
 
   /**
