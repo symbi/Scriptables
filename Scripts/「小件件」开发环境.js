@@ -106,10 +106,12 @@ class Base {
     let data = null
     const cacheKey = this.md5(url)
     if (useCache && Keychain.contains(cacheKey)) {
+      console.log('exist cache in httpGet')
       let cache = Keychain.get(cacheKey)
       return json ? JSON.parse(cache) : cache
     }
     try {
+      console.log('httpGet first time')
       let req = new Request(url)
       data = await (json ? req.loadJSON() : req.loadString())
     } catch (e) {}
