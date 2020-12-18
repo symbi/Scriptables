@@ -134,7 +134,8 @@ class Widget extends Base {
     cell_text.font = Font.heavyMonospacedSystemFont(20)
     cell_text.textColor = color
     //cell.addSpacer()
-    cell.url= this.actionOpenUrl(url)
+    //cell.url= this.actionOpenUrl(url)
+    cell.url= url //this.actionUrl('open-url', url)
     w.addSpacer(10)
     return w
   }
