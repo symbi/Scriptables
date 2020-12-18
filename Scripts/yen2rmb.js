@@ -14,7 +14,7 @@ const { Base } = require("./「小件件」开发环境")
 // @组件代码开始
 class Widget extends Base {
   //url = 'https://mp.weixin.qq.com/s/wNVTp1KMZNa-F3MbCHO_TA'
-  url ='https://www.xe.com/currencycharts/?from=JPY&to=CNY&view=1Y'
+  //url ='https://www.xe.com/currencycharts/?from=JPY&to=CNY&view=1Y'
 
   /**
    * 传递给组件的参数，可以是桌面 Parameter 数据，也可以是外部如 URLScheme 等传递的数据
@@ -117,9 +117,10 @@ class Widget extends Base {
     color_uj=this.getColor(u_j_td,u_j_yd)
 
     
-    this.addCell(w, 'U->C: '+u_c_td.toString(), color_uc, this.url_uc)
-    this.addCell(w, 'J->C: '+j_c_td.toString(), color_jc, this.url_jc)
-    this.addCell(w, 'U->J: '+u_j_td.toString(), color_uj, this.url_uj)
+    await this.addCell(w, 'U->C: '+u_c_td.toString(), color_uc, this.url_uc)
+    await this.addCell(w, 'J->C: '+j_c_td.toString(), color_jc, this.url_jc)
+    await this.addCell(w, 'U->J: '+u_j_td.toString(), color_uj, this.url_uj)
+    //w.url=url_uj
     return w
   }
   getColor(t,y){
@@ -128,14 +129,16 @@ class Widget extends Base {
     return Color.white()
   }
   async addCell(w,txt,color,url){
-    const cell = w.addStack()
+    console.log(url)
+    let cell = w.addStack()
+    cell.url=url
     cell.centerAlignContent()
-    const cell_text = cell.addText(txt)
+    let cell_text = cell.addText(txt)
     cell_text.font = Font.heavyMonospacedSystemFont(20)
     cell_text.textColor = color
     //cell.addSpacer()
     //cell.url= this.actionOpenUrl(url)
-    cell.url= url //this.actionUrl('open-url', url)
+    //cell.url= url //this.actionUrl('open-url', url)
     w.addSpacer(10)
     return w
   }
