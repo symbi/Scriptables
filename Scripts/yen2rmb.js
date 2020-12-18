@@ -10,18 +10,7 @@
 // 添加require，是为了vscode中可以正确引入包，以获得自动补全等功能
 if (typeof require === 'undefined') require = importModule
 const { Base } = require("./「小件件」开发环境")
-//let API_WEATHER = "484119fa5c01cc21675583dbd8952384";//Load Your api here from https://openweathermap.org/ 
-//let CITY_WEATHER = "1863967";//add your city ID "xushuguan"
-//let wetherurl = "http://api.openweathermap.org/data/2.5/weather?id=" + CITY_WEATHER + "&APPID=" + API_WEATHER + "&units=metric";
-//const weatherJSON = await fetchWeatherData(wetherurl);
-//console.log(weatherJSON);
-//get Json weather
-/*
-async function fetchWeatherData(url) {
-  const request = new Request(url);
-  const res = await request.loadJSON();
-  return res;
-}*/
+
 // @组件代码开始
 class Widget extends Base {
   //url = 'https://mp.weixin.qq.com/s/wNVTp1KMZNa-F3MbCHO_TA'
@@ -35,6 +24,21 @@ class Widget extends Base {
     super(arg)
     this.name = '蚂蚁庄园'
     this.desc = '今天的题会做么？'
+    this.api_key = '51a0cc02ea7643023fb0c37d0dba2881';
+    this.url_uj = 'https://www.xe.com/currencycharts/?from=USD&to=JPY&view=1Y'
+    this.url_jc = 'https://www.xe.com/currencycharts/?from=JPY&to=CNY&view=1Y'
+    this.url_uc = 'https://www.xe.com/currencycharts/?from=USD&to=CNY&view=1Y'
+    let today = new Date()
+    let yesterday = new Date(Date.now() - 864e5)
+    console.log(today.toLocaleDateString("en-US"))
+    console.log(yesterday.toLocaleDateString("en-US"))
+    // 当前设置的存储key（提示：可通过桌面设置不同参数，来保存多个设置）
+    //let _md5 = this.md5(module.filename)
+    let _md5 = this.md5(today.toLocaleDateString("en-US"))
+    let _md5_last = this.md5(yesterday.toLocaleDateString("en-US"))
+    this.CACHE_KEY = `cache_${_md5}`
+    this.CACHE_KEY_LAST = `cache_${_md5_last}`
+
   }
 
   /**
@@ -42,7 +46,7 @@ class Widget extends Base {
    * 可以根据 this.widgetFamily 来判断小组件尺寸，以返回不同大小的内容
    */
   async render () {
-    const data = await this.getData('bg')
+    const data = await this.getData('bg',false)
     switch (this.widgetFamily) {
       case 'large':
         return await this.renderLarge(data)
@@ -85,26 +89,52 @@ class Widget extends Base {
   async renderSmall (data_bg) {
     let w = new ListWidget()
     //let data_bg = await this.getData('bg')
-    let data_info = await this.getData('info');
-    console.log(data_info);
+    let data_info = await this.getData('info',this.CACHE_KEY);
+    let data_info_yetd = await this.getData('info',this.CACHE_KEY_LAST);
+    //console.log(data_info);
+    console.log(data_info_yetd);
     w.backgroundImage = await this.getImage(data_bg['imgurl'])
     //console.log('data_info:',data_info['timestamp']);
     //w.url = data['img_url']
-    let jpy=data_info['quotes']['USDJPY']
-    let cny=data_info['quotes']['USDCNY']
-    console.log(cny/jpy)
-    w.url = this.url
-    this.addCell(w, 'U->C: '+(cny.toFixed(2)).toString())
-    this.addCell(w, 'J->C: '+((cny/jpy*100).toFixed(2)).toString())
-    this.addCell(w, 'U->J: '+(jpy.toFixed(0)).toString())
+    let jpy_td=data_info['quotes']['USDJPY']
+    let jpy_yd=data_info_yetd['quotes']['USDJPY']
+    let cny_td=data_info['quotes']['USDCNY']
+    let cny_yd=data_info_yetd['quotes']['USDCNY']
+    //console.log(cny/jpy)
+    //w.url = this.url
+    
+    let color_uc=Color.white()
+    let color_jc=Color.white()
+    let color_uj=Color.white()
+    let u_c_td=cny_td.toFixed(2)
+    let u_c_yd=cny_yd.toFixed(2)
+    let j_c_td=(cny_td/jpy_td*100).toFixed(2)
+    let j_c_yd=(cny_yd/jpy_yd*100).toFixed(2)
+    let u_j_td=jpy_td.toFixed(0)
+    let u_j_yd=jpy_yd.toFixed(0)
+    color_uc=this.getColor(u_c_td,u_c_yd)
+    color_jc=this.getColor(j_c_td,j_c_yd)
+    color_uj=this.getColor(u_j_td,u_j_yd)
+
+    
+    this.addCell(w, 'U->C: '+u_c_td.toString(), color_uc, this.url_uc)
+    this.addCell(w, 'J->C: '+j_c_td.toString(), color_jc, this.url_jc)
+    this.addCell(w, 'U->J: '+u_j_td.toString(), color_uj, this.url_uj)
     return w
   }
-  async addCell(w,txt){
+  getColor(t,y){
+    if (t<y)return Color.green()
+    if (t>y)return Color.red()
+    return Color.white()
+  }
+  async addCell(w,txt,color,url){
     const cell = w.addStack()
     cell.centerAlignContent()
     const cell_text = cell.addText(txt)
     cell_text.font = Font.heavyMonospacedSystemFont(20)
+    cell_text.textColor = color
     //cell.addSpacer()
+    cell.url= this.actionOpenUrl(url)
     w.addSpacer(10)
     return w
   }
@@ -137,54 +167,55 @@ class Widget extends Base {
   /**
    * 获取数据函数，函数名可不固定
    */
-  async getData (flag) {
+  async getData (flag,cache) {
     
     let api=''
     switch(flag){
       case 'bg':
+        console.log('get data bg');
         api = `https://api.ixiaowai.cn/gqapi/gqapi.php?return=json`;
         break;
       case 'info':
         console.log('get data info');
-
-        //API_KEY
-        let API_WEATHER = "484119fa5c01cc21675583dbd8952384";//Load Your api here from https://openweathermap.org/ 
-        let CITY_WEATHER = "1863967";//add your city ID "xushuguan"
-        //let wetherurl = "http://api.openweathermap.org/data/2.5/weather?id=" + CITY_WEATHER + "&APPID=" + API_WEATHER + "&units=metric";
-        let wetherurl = "http://api.openweathermap.org/data/2.5/weather";
-        //api=wetherurl;
-        api = "http://api.currencylayer.com/live";
-        api = "http://api.currencylayer.com/live?access_key=d5d0cd2befe16bc06c612e14e0ef2f8e&currencies=JPY,CNY";
+        //api = "http://api.currencylayer.com/live";
+        api = 'http://api.currencylayer.com/live?access_key='+this.api_key+'&currencies=JPY,CNY';
         break;
     }
-    
-    return await this.fetchAPI(api);
-    //return await this.fetchWeatherData(api);
-    
+    return await this.httpGet_api(api,true,cache);
   }
-  async fetchWeatherData(url) {
-    const request = new Request(url);
-    const res = await request.loadJSON();
-    console.log(res);
-    return res;
-  }
-  // http.get
-  async fetchAPI (api, json = true) {
+
+  async httpGet_api (url, json = true, cacheKey) {
     let data = null
+    //const cacheKey = this.CACHE_KEY
+    if (cacheKey && Keychain.contains(cacheKey)) {
+      console.log('exist cache in httpGet:',url)
+      let cache = Keychain.get(cacheKey)
+      //console.log(cache)
+      //Keychain.remove(cacheKey)
+      //if(!cache)console.log('cache none')
+      if(!cache)return null
+      return json ? JSON.parse(cache) : cache
+    }
     try {
-      let req = new Request(api)
-      req.headers = {
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1 Edg/85.0.4183.102'
-      }
+      console.log('httpGet first time:',url)
+      let req = new Request(url)
       data = await (json ? req.loadJSON() : req.loadString())
-    } catch (e) {
-      console.log(e);
-      console.log(api);
-    }
+      
+    } catch (e) {}
     // 判断数据是否为空（加载失败）
-    if (!data) {
+    
+    
+    //if (!data && Keychain.contains(cacheKey)) {
+    /*if (!data) {
+      console.log('empty data')
       return null
-    }
+      // 判断是否有缓存
+      //let cache = Keychain.get(cacheKey)
+      //return json ? JSON.parse(cache) : cache
+    }*/
+    // 存储缓存
+    if(cacheKey)Keychain.set(cacheKey, json ? JSON.stringify(data) : data)
+    
     return data
   }
 
